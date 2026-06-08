@@ -13,6 +13,8 @@ import {
   Wand2,
   ChevronDown,
   ChevronUp,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -35,13 +37,29 @@ const bgmList = [
 ];
 
 const Editing = () => {
-  const { products, selectedTemplate } = useAppStore();
+  const { products, selectedTemplate, generateVideo, videoProjects, currentScript, voiceConfig } = useAppStore();
   const [activeProduct] = products;
   const [selectedTransition, setSelectedTransition] = useState("fade");
   const [selectedBgm, setSelectedBgm] = useState("pop");
   const [bgmVolume, setBgmVolume] = useState(50);
   const [autoCover, setAutoCover] = useState(true);
   const [expandedImages, setExpandedImages] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateSuccess, setGenerateSuccess] = useState(false);
+
+  const handleGenerateVideo = () => {
+    if (!activeProduct || !selectedTemplate || !currentScript) return;
+    setIsGenerating(true);
+    setGenerateSuccess(false);
+
+    generateVideo(activeProduct.id, selectedTemplate.id);
+
+    setTimeout(() => {
+      setIsGenerating(false);
+      setGenerateSuccess(true);
+      setTimeout(() => setGenerateSuccess(false), 3000);
+    }, 2200);
+  };
 
   if (!activeProduct) return null;
 
@@ -56,13 +74,32 @@ const Editing = () => {
           <p className="text-gray-400">调整图片顺序、转场特效和背景音乐</p>
         </div>
         <div className="flex gap-3">
+          {generateSuccess && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-green/15 border border-accent-green/30 text-accent-green text-sm animate-slide-up">
+              <Check className="w-4 h-4" />
+              生成成功！可在预览编辑查看
+            </div>
+          )}
           <button className="btn-secondary flex items-center gap-2">
             <Wand2 className="w-4 h-4" />
             智能排序
           </button>
-          <button className="btn-primary flex items-center gap-2">
-            <Play className="w-4 h-4" />
-            生成视频
+          <button
+            onClick={handleGenerateVideo}
+            disabled={isGenerating}
+            className="btn-primary flex items-center gap-2 disabled:opacity-60"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                生成视频
+              </>
+            )}
           </button>
         </div>
       </div>

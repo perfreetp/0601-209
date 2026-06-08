@@ -40,32 +40,134 @@ const ctaTemplates = [
 ];
 
 const Script = () => {
-  const { currentScript, updateScript } = useAppStore();
+  const { currentScript, updateScript, products, store } = useAppStore();
   const [editingOpening, setEditingOpening] = useState(false);
   const [editingSellingPoint, setEditingSellingPoint] = useState<number | null>(null);
   const [editingCta, setEditingCta] = useState(false);
   const [sellPointInput, setSellPointInput] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const randomPick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  const activeProduct = products[0];
+
+  const randomPick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+  const generateSubtitles = (opening: string, sellingPoints: string[], cta: string) => {
+    const subs: { timestamp: number; text: string }[] = [];
+    let timestamp = 0;
+
+    const openingChars = opening.length;
+    if (openingChars > 0) {
+      const chunkSize = 15;
+      for (let i = 0; i < opening.length; i += chunkSize) {
+        subs.push({ timestamp, text: opening.slice(i, i + chunkSize) });
+        timestamp += 2;
+      }
+    }
+
+    sellingPoints.forEach((point) => {
+      const chunkSize = 12;
+      for (let i = 0; i < point.length; i += chunkSize) {
+        subs.push({ timestamp, text: point.slice(i, i + chunkSize) });
+        timestamp += 2;
+      }
+    });
+
+    if (cta.length > 0) {
+      const chunkSize = 15;
+      for (let i = 0; i < cta.length; i += chunkSize) {
+        subs.push({ timestamp, text: cta.slice(i, i + chunkSize) });
+        timestamp += 2;
+      }
+    }
+
+    return subs;
+  };
+
+  const syncSubtitles = (opening: string, sellingPoints: string[], cta: string) => {
+    updateScript({ subtitles: generateSubtitles(opening, sellingPoints, cta) });
+  };
+
+  const generateAIScript = () => {
+    if (!currentScript) return;
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const productName = activeProduct?.name || "招牌商品";
+      const storeName = store?.name || "我们的店铺";
+      const price = activeProduct?.price ? `仅需¥${activeProduct.price}` : "";
+      const discount = activeProduct?.discount || "";
+
+      const openingOptions = [
+        `朋友们注意啦！今天${storeName}给大家带来${productName}！`,
+        `天哪！${storeName}的${productName}居然这么好吃！${price}！`,
+        `本地人都在排队的宝藏小店${storeName}，今天终于来打卡${productName}了！`,
+        `干饭人集合！今天安利${storeName}的${productName}！${discount ? discount + "！" : ""}`,
+        `一口惊艳！${storeName}的${productName}这味道我能连吃三天！${price}！`,
+      ];
+
+      const baseSellingPoints = [
+        `精选上等食材，每日新鲜直送，${productName}品质保证`,
+        `独家秘制配方，口感层次丰富，${storeName}匠心出品`,
+        `${discount || "开业限时特惠"}，错过再等一年！${price}`,
+        `老师傅匠心手作，传承二十年味道，${productName}正宗地道`,
+        `分量十足性价比超高，朋友聚会首选${storeName}`,
+        `零添加健康烹饪，老人小孩都爱吃的${productName}`,
+      ];
+
+      const shuffledPoints = [...baseSellingPoints].sort(() => Math.random() - 0.5);
+      const selectedPoints = shuffledPoints.slice(0, 3);
+
+      const ctaOptions = [
+        `点击左下角链接立即抢购${productName}，手慢无！`,
+        `评论区扣1获取${storeName}专属优惠，到店出示即可使用！`,
+        `关注收藏不迷路，到店报暗号有惊喜！${storeName}等你！`,
+        `转发给你的饭搭子，约起来去${storeName}吃${productName}！`,
+        `限时福利${price}，先到先得，${storeName}马上冲！`,
+      ];
+
+      const opening = randomPick(openingOptions);
+      const cta = randomPick(ctaOptions);
+      const subtitles = generateSubtitles(opening, selectedPoints, cta);
+
+      updateScript({
+        opening,
+        sellingPoints: selectedPoints,
+        callToAction: cta,
+        subtitles,
+      });
+
+      setIsGenerating(false);
+    }, 800);
+  };
 
   const regenerateOpening = () => {
-    updateScript({ opening: randomPick(openingTemplates) });
+    if (!currentScript) return;
+    const newOpening = randomPick(openingTemplates);
+    updateScript({ opening: newOpening });
+    syncSubtitles(newOpening, currentScript.sellingPoints, currentScript.callToAction);
   };
 
   const regenerateSellingPoint = (index: number) => {
     if (!currentScript) return;
     const newPoints = [...currentScript.sellingPoints];
-    newPoints[index] = randomPick(sellingPointTemplates.filter((p) => !newPoints.includes(p)));
+    const available = sellingPointTemplates.filter((p) => !newPoints.includes(p));
+    newPoints[index] = available.length > 0 ? randomPick(available) : randomPick(sellingPointTemplates);
     updateScript({ sellingPoints: newPoints });
+    syncSubtitles(currentScript.opening, newPoints, currentScript.callToAction);
   };
 
   const regenerateCta = () => {
-    updateScript({ callToAction: randomPick(ctaTemplates) });
+    if (!currentScript) return;
+    const newCta = randomPick(ctaTemplates);
+    updateScript({ callToAction: newCta });
+    syncSubtitles(currentScript.opening, currentScript.sellingPoints, newCta);
   };
 
   const addSellingPoint = () => {
     if (!currentScript || !sellPointInput.trim()) return;
-    updateScript({ sellingPoints: [...currentScript.sellingPoints, sellPointInput.trim()] });
+    const newPoints = [...currentScript.sellingPoints, sellPointInput.trim()];
+    updateScript({ sellingPoints: newPoints });
+    syncSubtitles(currentScript.opening, newPoints, currentScript.callToAction);
     setSellPointInput("");
   };
 
@@ -73,6 +175,7 @@ const Script = () => {
     if (!currentScript) return;
     const newPoints = currentScript.sellingPoints.filter((_, i) => i !== index);
     updateScript({ sellingPoints: newPoints });
+    syncSubtitles(currentScript.opening, newPoints, currentScript.callToAction);
   };
 
   const updateSellingPoint = (index: number, value: string) => {
@@ -80,6 +183,7 @@ const Script = () => {
     const newPoints = [...currentScript.sellingPoints];
     newPoints[index] = value;
     updateScript({ sellingPoints: newPoints });
+    syncSubtitles(currentScript.opening, newPoints, currentScript.callToAction);
     setEditingSellingPoint(null);
   };
 
@@ -95,9 +199,13 @@ const Script = () => {
           </h1>
           <p className="text-gray-400">AI智能生成开场、卖点和引导文案，一键生成字幕</p>
         </div>
-        <button className="btn-primary flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
-          一键AI生成
+        <button
+          onClick={generateAIScript}
+          disabled={isGenerating}
+          className="btn-primary flex items-center gap-2 disabled:opacity-60"
+        >
+          <Sparkles className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} />
+          {isGenerating ? "生成中..." : "一键AI生成"}
         </button>
       </div>
 
@@ -124,7 +232,9 @@ const Script = () => {
                   className="input-field flex-1 min-h-[80px] resize-none"
                   autoFocus
                   onBlur={(e) => {
-                    updateScript({ opening: e.target.value });
+                    const newOpening = e.target.value;
+                    updateScript({ opening: newOpening });
+                    syncSubtitles(newOpening, currentScript.sellingPoints, currentScript.callToAction);
                     setEditingOpening(false);
                   }}
                 />
@@ -239,7 +349,9 @@ const Script = () => {
                 className="input-field w-full min-h-[80px] resize-none"
                 autoFocus
                 onBlur={(e) => {
-                  updateScript({ callToAction: e.target.value });
+                  const newCta = e.target.value;
+                  updateScript({ callToAction: newCta });
+                  syncSubtitles(currentScript.opening, currentScript.sellingPoints, newCta);
                   setEditingCta(false);
                 }}
               />

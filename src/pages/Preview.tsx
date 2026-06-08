@@ -315,25 +315,142 @@ const Preview = () => {
             <div className="glass-card p-6">
               <h3 className="card-title mb-4">脚本内容</h3>
               <div className="space-y-3">
-                {[
-                  { label: "开场文案", value: selectedProject.script.opening },
-                  {
-                    label: "核心卖点",
-                    value: selectedProject.script.sellingPoints.join("；"),
-                  },
-                  { label: "行动引导", value: selectedProject.script.callToAction },
-                ].map((item) => (
+                {editingField === "script.opening" ? (
+                  <div className="p-3 rounded-xl bg-dark-800/50 border border-primary-500/30">
+                    <p className="text-xs text-gray-500 mb-2">开场文案</p>
+                    <textarea
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="input-field w-full min-h-[80px] resize-none text-sm"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-dark-700"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateVideoProject(selectedProject.id, {
+                            script: { ...selectedProject.script, opening: editValue },
+                          });
+                          setEditingField(null);
+                        }}
+                        className="text-xs text-white px-3 py-1.5 rounded-lg bg-primary-500 hover:bg-primary-400 flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <div
-                    key={item.label}
+                    onClick={() => startEdit("script.opening", selectedProject.script.opening)}
                     className="group p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:border-primary-500/20 cursor-pointer transition-all"
                   >
-                    <p className="text-xs text-gray-500 mb-1">{item.label}</p>
+                    <p className="text-xs text-gray-500 mb-1">开场文案</p>
                     <div className="flex items-start gap-2">
-                      <p className="flex-1 text-sm text-white">{item.value}</p>
+                      <p className="flex-1 text-sm text-white">{selectedProject.script.opening}</p>
                       <Edit3 className="w-3.5 h-3.5 text-gray-500 opacity-0 group-hover:opacity-100 mt-0.5 transition-opacity flex-shrink-0" />
                     </div>
                   </div>
-                ))}
+                )}
+
+                {editingField === "script.sellingPoints" ? (
+                  <div className="p-3 rounded-xl bg-dark-800/50 border border-primary-500/30">
+                    <p className="text-xs text-gray-500 mb-2">核心卖点（每行一条）</p>
+                    <textarea
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="input-field w-full min-h-[100px] resize-none text-sm"
+                      autoFocus
+                      placeholder="每行输入一条卖点..."
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-dark-700"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={() => {
+                          const points = editValue.split("\n").filter((p) => p.trim());
+                          updateVideoProject(selectedProject.id, {
+                            script: { ...selectedProject.script, sellingPoints: points },
+                          });
+                          setEditingField(null);
+                        }}
+                        className="text-xs text-white px-3 py-1.5 rounded-lg bg-primary-500 hover:bg-primary-400 flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => startEdit("script.sellingPoints", selectedProject.script.sellingPoints.join("\n"))}
+                    className="group p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:border-primary-500/20 cursor-pointer transition-all"
+                  >
+                    <p className="text-xs text-gray-500 mb-1">核心卖点</p>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 space-y-1">
+                        {selectedProject.script.sellingPoints.map((point, i) => (
+                          <p key={i} className="text-sm text-white">
+                            • {point}
+                          </p>
+                        ))}
+                      </div>
+                      <Edit3 className="w-3.5 h-3.5 text-gray-500 opacity-0 group-hover:opacity-100 mt-0.5 transition-opacity flex-shrink-0" />
+                    </div>
+                  </div>
+                )}
+
+                {editingField === "script.callToAction" ? (
+                  <div className="p-3 rounded-xl bg-dark-800/50 border border-primary-500/30">
+                    <p className="text-xs text-gray-500 mb-2">行动引导</p>
+                    <textarea
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="input-field w-full min-h-[80px] resize-none text-sm"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-dark-700"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateVideoProject(selectedProject.id, {
+                            script: { ...selectedProject.script, callToAction: editValue },
+                          });
+                          setEditingField(null);
+                        }}
+                        className="text-xs text-white px-3 py-1.5 rounded-lg bg-primary-500 hover:bg-primary-400 flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => startEdit("script.callToAction", selectedProject.script.callToAction)}
+                    className="group p-3 rounded-xl bg-dark-800/50 border border-white/5 hover:border-primary-500/20 cursor-pointer transition-all"
+                  >
+                    <p className="text-xs text-gray-500 mb-1">行动引导</p>
+                    <div className="flex items-start gap-2">
+                      <p className="flex-1 text-sm text-white">{selectedProject.script.callToAction}</p>
+                      <Edit3 className="w-3.5 h-3.5 text-gray-500 opacity-0 group-hover:opacity-100 mt-0.5 transition-opacity flex-shrink-0" />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

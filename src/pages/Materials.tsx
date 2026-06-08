@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ImagePlus,
   Upload,
@@ -34,6 +34,7 @@ const Materials = () => {
   });
   const [storeForm, setStoreForm] = useState(store);
   const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddProduct = () => {
     if (productForm.name && productForm.price) {
@@ -60,12 +61,69 @@ const Materials = () => {
     }
   };
 
+  const processFile = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = () => {
-    const newImage = `https://picsum.photos/400/400?random=${Date.now()}`;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        const dataUrl = await processFile(file);
+        newImages.push(dataUrl);
+      }
+    }
+
     setProductForm({
       ...productForm,
-      images: [...(productForm.images || []), newImage],
+      images: [...(productForm.images || []), ...newImages],
     });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        const dataUrl = await processFile(file);
+        newImages.push(dataUrl);
+      }
+    }
+
+    setProductForm({
+      ...productForm,
+      images: [...(productForm.images || []), ...newImages],
+    });
+  };
+
+  const removeImage = (index: number) => {
+    const newImgs = [...(productForm.images || [])];
+    newImgs.splice(index, 1);
+    setProductForm({ ...productForm, images: newImgs });
   };
 
   return (
@@ -168,13 +226,23 @@ const Materials = () => {
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm text-gray-400 mb-1.5">商品图片</label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                     <div
                       onDragOver={(e) => {
                         e.preventDefault();
                         setDragOver(true);
                       }}
                       onDragLeave={() => setDragOver(false)}
-                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                      onDrop={handleDrop}
+                      onClick={handleImageUpload}
+                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
                         dragOver
                           ? "border-primary-500 bg-primary-500/10"
                           : "border-white/20 hover:border-primary-500/50"
@@ -182,32 +250,37 @@ const Materials = () => {
                     >
                       <div className="flex flex-wrap gap-3 justify-center mb-4">
                         {productForm.images?.map((img, i) => (
-                          <div key={i} className="relative group">
+                          <div
+                            key={i}
+                            className="relative group"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <img
                               src={img}
                               alt=""
                               className="w-20 h-20 rounded-lg object-cover border border-white/10"
                             />
                             <button
-                              onClick={() => {
-                                const newImgs = [...productForm.images!];
-                                newImgs.splice(i, 1);
-                                setProductForm({ ...productForm, images: newImgs });
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImage(i);
                               }}
-                              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-accent-red text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-accent-red text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                             >
                               <X className="w-3 h-3" />
                             </button>
                           </div>
                         ))}
                       </div>
-                      <button
-                        onClick={handleImageUpload}
-                        className="btn-secondary flex items-center gap-2 mx-auto text-sm"
-                      >
-                        <Upload className="w-4 h-4" />
-                        点击添加图片
-                      </button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                        <p className="text-sm text-gray-300">
+                          点击或拖拽图片到此处上传
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          支持 JPG、PNG、GIF 格式，可多选
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

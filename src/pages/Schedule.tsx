@@ -40,8 +40,35 @@ const Schedule = () => {
   const daysInMonth = lastDay.getDate();
   const startWeekday = firstDay.getDay();
 
+  const getWeekDates = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    start.setDate(start.getDate() - day);
+    const weekDates: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      weekDates.push(d);
+    }
+    return weekDates;
+  };
+
+  const weekDates = getWeekDates(currentDate);
+
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  const prevWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentDate(newDate);
+  };
+
+  const nextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentDate(newDate);
+  };
 
   const monthNames = [
     "一月", "二月", "三月", "四月", "五月", "六月",
@@ -192,16 +219,18 @@ const Schedule = () => {
         <div className="col-span-8 glass-card p-6">
           <div className="flex items-center justify-between mb-6">
             <button
-              onClick={prevMonth}
+              onClick={viewMode === "month" ? prevMonth : prevWeek}
               className="w-9 h-9 rounded-lg bg-dark-700 hover:bg-dark-600 flex items-center justify-center transition-all"
             >
               <ChevronLeft className="w-5 h-5 text-gray-300" />
             </button>
             <h2 className="font-display text-xl font-bold text-white">
-              {year}年 {monthNames[month]}
+              {viewMode === "month"
+                ? `${year}年 ${monthNames[month]}`
+                : `${weekDates[0].getMonth() + 1}月${weekDates[0].getDate()}日 - ${weekDates[6].getMonth() + 1}月${weekDates[6].getDate()}日`}
             </h2>
             <button
-              onClick={nextMonth}
+              onClick={viewMode === "month" ? nextMonth : nextWeek}
               className="w-9 h-9 rounded-lg bg-dark-700 hover:bg-dark-600 flex items-center justify-center transition-all"
             >
               <ChevronRight className="w-5 h-5 text-gray-300" />
@@ -219,75 +248,137 @@ const Schedule = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {[...Array(startWeekday)].map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square" />
-            ))}
-            {[...Array(daysInMonth)].map((_, i) => {
-              const date = new Date(year, month, i + 1);
-              const daySchedules = getSchedulesForDate(date);
-              const today = isToday(date);
-              return (
-                <div
-                  key={i + 1}
-                  onClick={() => {
-                    setSelectedDate(
-                      `${year}-${String(month + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`
-                    );
-                    setShowAddModal(true);
-                  }}
-                  className={`aspect-square rounded-xl p-2 cursor-pointer transition-all border ${
-                    today
-                      ? "bg-primary-500/20 border-primary-500/50"
-                      : daySchedules.length > 0
-                      ? "bg-dark-800/70 border-primary-500/20 hover:bg-dark-700"
-                      : "bg-dark-800/30 border-transparent hover:bg-dark-800/60 hover:border-white/10"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-sm font-medium ${
-                        today ? "text-primary-400" : "text-gray-300"
-                      }`}
-                    >
-                      {i + 1}
-                    </span>
-                    {daySchedules.length > 0 && (
-                      <span className="flex gap-0.5">
-                        {daySchedules.slice(0, 3).map((_, idx) => (
-                          <span
-                            key={idx}
-                            className="w-1.5 h-1.5 rounded-full bg-primary-500"
-                          />
-                        ))}
+          {viewMode === "month" ? (
+            <div className="grid grid-cols-7 gap-1">
+              {[...Array(startWeekday)].map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square" />
+              ))}
+              {[...Array(daysInMonth)].map((_, i) => {
+                const date = new Date(year, month, i + 1);
+                const daySchedules = getSchedulesForDate(date);
+                const today = isToday(date);
+                return (
+                  <div
+                    key={i + 1}
+                    onClick={() => {
+                      setSelectedDate(
+                        `${year}-${String(month + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`
+                      );
+                      setShowAddModal(true);
+                    }}
+                    className={`aspect-square rounded-xl p-2 cursor-pointer transition-all border ${
+                      today
+                        ? "bg-primary-500/20 border-primary-500/50"
+                        : daySchedules.length > 0
+                        ? "bg-dark-800/70 border-primary-500/20 hover:bg-dark-700"
+                        : "bg-dark-800/30 border-transparent hover:bg-dark-800/60 hover:border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-sm font-medium ${
+                          today ? "text-primary-400" : "text-gray-300"
+                        }`}
+                      >
+                        {i + 1}
                       </span>
+                      {daySchedules.length > 0 && (
+                        <span className="flex gap-0.5">
+                          {daySchedules.slice(0, 3).map((_, idx) => (
+                            <span
+                              key={idx}
+                              className="w-1.5 h-1.5 rounded-full bg-primary-500"
+                            />
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                    {daySchedules.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {daySchedules.slice(0, 2).map((s) => (
+                          <div
+                            key={s.id}
+                            className="text-[10px] text-gray-400 truncate bg-dark-900/50 px-1.5 py-0.5 rounded"
+                          >
+                            {new Date(s.publishTime).toLocaleTimeString("zh-CN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            {s.videoTitle.slice(0, 6)}
+                          </div>
+                        ))}
+                        {daySchedules.length > 2 && (
+                          <div className="text-[10px] text-primary-400">
+                            +{daySchedules.length - 2} 更多
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {daySchedules.length > 0 && (
-                    <div className="mt-1 space-y-0.5">
-                      {daySchedules.slice(0, 2).map((s) => (
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-2">
+              {weekDates.map((date, i) => {
+                const daySchedules = getSchedulesForDate(date);
+                const today = isToday(date);
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                return (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      setSelectedDate(dateStr);
+                      setShowAddModal(true);
+                    }}
+                    className={`min-h-[140px] rounded-xl p-3 cursor-pointer transition-all border ${
+                      today
+                        ? "bg-primary-500/20 border-primary-500/50"
+                        : daySchedules.length > 0
+                        ? "bg-dark-800/70 border-primary-500/20 hover:bg-dark-700"
+                        : "bg-dark-800/30 border-transparent hover:bg-dark-800/60 hover:border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-base font-bold ${
+                          today ? "text-primary-400" : "text-gray-300"
+                        }`}
+                      >
+                        {date.getDate()}
+                      </span>
+                      {daySchedules.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-300">
+                          {daySchedules.length}条
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      {daySchedules.map((s) => (
                         <div
                           key={s.id}
-                          className="text-[10px] text-gray-400 truncate bg-dark-900/50 px-1.5 py-0.5 rounded"
+                          className="text-[10px] text-gray-300 bg-dark-900/60 px-2 py-1.5 rounded border border-white/5"
                         >
-                          {new Date(s.publishTime).toLocaleTimeString("zh-CN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}{" "}
-                          {s.videoTitle.slice(0, 6)}
+                          <div className="text-primary-300 font-medium">
+                            {new Date(s.publishTime).toLocaleTimeString("zh-CN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                          <div className="truncate mt-0.5">{s.videoTitle}</div>
                         </div>
                       ))}
-                      {daySchedules.length > 2 && (
-                        <div className="text-[10px] text-primary-400">
-                          +{daySchedules.length - 2} 更多
+                      {daySchedules.length === 0 && (
+                        <div className="text-[10px] text-gray-600 text-center py-2">
+                          暂无排期
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="col-span-4 space-y-6">
