@@ -44,9 +44,7 @@ const Materials = () => {
         originalPrice: productForm.originalPrice,
         discount: productForm.discount,
         description: productForm.description,
-        images: productForm.images?.length
-          ? productForm.images
-          : [`https://picsum.photos/400/400?random=${Date.now()}`],
+        images: productForm.images || [],
         category: productForm.category,
       });
       setProductForm({

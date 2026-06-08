@@ -21,7 +21,7 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 
 const Preview = () => {
-  const { videoProjects, updateVideoProject } = useAppStore();
+  const { videoProjects, updateVideoProject, products } = useAppStore();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -30,6 +30,13 @@ const Preview = () => {
   const [editValue, setEditValue] = useState("");
 
   const selectedProject = videoProjects[selectedIndex];
+  const relatedProduct = products.find((p) => p.id === selectedProject?.productId);
+
+  const displayTitle = relatedProduct?.name || selectedProject?.title || "商品标题";
+  const displayPrice = relatedProduct?.price ?? 0;
+  const displayOriginalPrice = relatedProduct?.originalPrice;
+  const displayDiscount = relatedProduct?.discount || "热卖推荐";
+  const displayCta = selectedProject?.script?.callToAction || "点击左下角立即抢购！";
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -226,7 +233,7 @@ const Preview = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/50 to-transparent" />
 
               <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                <span className="badge bg-accent-orange/90 text-white border-0">限时特惠</span>
+                <span className="badge bg-accent-orange/90 text-white border-0">{displayDiscount}</span>
                 <span className="text-xs text-white/80 bg-dark-950/60 px-2 py-1 rounded">
                   00:12 / 00:24
                 </span>
@@ -247,15 +254,17 @@ const Preview = () => {
 
               <div className="absolute bottom-6 left-6 right-6">
                 <p className="font-display text-2xl font-bold text-white mb-2 drop-shadow-lg">
-                  招牌红烧牛肉面
+                  {displayTitle}
                 </p>
                 <p className="text-3xl font-bold text-accent-orange drop-shadow-lg">
-                  ¥28
-                  <span className="text-base text-gray-300 line-through ml-2 font-normal">
-                    ¥38
-                  </span>
+                  ¥{displayPrice}
+                  {displayOriginalPrice && (
+                    <span className="text-base text-gray-300 line-through ml-2 font-normal">
+                      ¥{displayOriginalPrice}
+                    </span>
+                  )}
                 </p>
-                <p className="text-sm text-white/80 mt-1">点击左下角立即抢购！</p>
+                <p className="text-sm text-white/80 mt-1">{displayCta}</p>
               </div>
             </div>
 

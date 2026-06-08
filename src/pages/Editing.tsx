@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Scissors,
   Image as ImageIcon,
@@ -15,6 +15,8 @@ import {
   ChevronUp,
   Check,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -37,22 +39,67 @@ const bgmList = [
 ];
 
 const Editing = () => {
-  const { products, selectedTemplate, generateVideo, videoProjects, currentScript, voiceConfig } = useAppStore();
-  const [activeProduct] = products;
+  const { products, selectedTemplate, generateVideo, currentScript, voiceConfig } = useAppStore();
+  const activeProduct = products[0];
+  const [imageList, setImageList] = useState<string[]>([]);
   const [selectedTransition, setSelectedTransition] = useState("fade");
-  const [selectedBgm, setSelectedBgm] = useState("pop");
+  const [selectedBgmId, setSelectedBgmId] = useState("pop");
   const [bgmVolume, setBgmVolume] = useState(50);
   const [autoCover, setAutoCover] = useState(true);
+  const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
   const [expandedImages, setExpandedImages] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateSuccess, setGenerateSuccess] = useState(false);
 
+  useEffect(() => {
+    if (activeProduct?.images) {
+      setImageList([...activeProduct.images]);
+    }
+  }, [activeProduct?.id]);
+
+  useEffect(() => {
+    if (selectedCoverIndex >= imageList.length && imageList.length > 0) {
+      setSelectedCoverIndex(0);
+    }
+  }, [imageList.length]);
+
+  if (!activeProduct) return null;
+
+  const selectedBgm = bgmList.find((b) => b.id === selectedBgmId) || bgmList[0];
+  const selectedTransitionLabel = transitions.find((t) => t.id === selectedTransition)?.label || "淡入淡出";
+  const coverImage = imageList[selectedCoverIndex] || imageList[0];
+
+  const moveImage = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === imageList.length - 1) return;
+    const newList = [...imageList];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    [newList[index], newList[swapIndex]] = [newList[swapIndex], newList[index]];
+    if (selectedCoverIndex === index) {
+      setSelectedCoverIndex(swapIndex);
+    } else if (selectedCoverIndex === swapIndex) {
+      setSelectedCoverIndex(index);
+    }
+    setImageList(newList);
+  };
+
+  const removeImage = (index: number) => {
+    const newList = imageList.filter((_, i) => i !== index);
+    setImageList(newList);
+  };
+
   const handleGenerateVideo = () => {
     if (!activeProduct || !selectedTemplate || !currentScript) return;
+    if (imageList.length === 0) return;
     setIsGenerating(true);
     setGenerateSuccess(false);
 
-    generateVideo(activeProduct.id, selectedTemplate.id);
+    generateVideo(activeProduct.id, selectedTemplate.id, {
+      imageOrder: imageList,
+      transition: selectedTransitionLabel,
+      backgroundMusic: selectedBgm.label,
+      coverImage: coverImage,
+    });
 
     setTimeout(() => {
       setIsGenerating(false);
@@ -60,8 +107,6 @@ const Editing = () => {
       setTimeout(() => setGenerateSuccess(false), 3000);
     }, 2200);
   };
-
-  if (!activeProduct) return null;
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -73,7 +118,7 @@ const Editing = () => {
           </h1>
           <p className="text-gray-400">调整图片顺序、转场特效和背景音乐</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           {generateSuccess && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-green/15 border border-accent-green/30 text-accent-green text-sm animate-slide-up">
               <Check className="w-4 h-4" />
@@ -86,7 +131,7 @@ const Editing = () => {
           </button>
           <button
             onClick={handleGenerateVideo}
-            disabled={isGenerating}
+            disabled={isGenerating || imageList.length === 0}
             className="btn-primary flex items-center gap-2 disabled:opacity-60"
           >
             {isGenerating ? (
@@ -115,7 +160,7 @@ const Editing = () => {
                 <ImageIcon className="w-5 h-5 text-primary-400" />
                 图片排序
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({activeProduct.images.length}张图片)
+                  ({imageList.length}张图片)
                 </span>
               </h2>
               {expandedImages ? (
@@ -128,32 +173,81 @@ const Editing = () => {
             {expandedImages && (
               <>
                 <div className="flex gap-3 overflow-x-auto pb-4">
-                  {activeProduct.images.map((img, index) => (
+                  {imageList.map((img, index) => (
                     <div
                       key={index}
-                      className="group relative flex-shrink-0 cursor-move"
+                      className="group relative flex-shrink-0"
                     >
                       <div className="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-gradient-primary text-white text-sm font-bold flex items-center justify-center shadow-glow z-10">
                         {index + 1}
                       </div>
-                      <div className="w-40 h-28 rounded-xl overflow-hidden border-2 border-primary-500/30 hover:border-primary-500 transition-all relative">
+                      <div className={`w-40 h-28 rounded-xl overflow-hidden border-2 transition-all relative ${
+                        index === selectedCoverIndex
+                          ? "border-accent-orange ring-2 ring-accent-orange/30"
+                          : "border-primary-500/30 hover:border-primary-500"
+                      }`}>
                         <img
                           src={img}
                           alt=""
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-dark-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <button className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700">
-                            <ArrowLeftRight className="w-4 h-4 text-white" />
+                        <div className="absolute inset-0 bg-dark-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveImage(index, "up");
+                            }}
+                            disabled={index === 0}
+                            className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
+                            title="上移"
+                          >
+                            <ArrowUp className="w-4 h-4 text-white" />
                           </button>
-                          <button className="w-8 h-8 rounded-lg bg-accent-red/80 flex items-center justify-center hover:bg-accent-red">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCoverIndex(index);
+                            }}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              index === selectedCoverIndex
+                                ? "bg-accent-orange"
+                                : "bg-dark-800/80 hover:bg-accent-orange/80"
+                            }`}
+                            title="设为封面"
+                          >
+                            <Crop className="w-4 h-4 text-white" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveImage(index, "down");
+                            }}
+                            disabled={index === imageList.length - 1}
+                            className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
+                            title="下移"
+                          >
+                            <ArrowDown className="w-4 h-4 text-white" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeImage(index);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-accent-red/80 flex items-center justify-center hover:bg-accent-red"
+                            title="删除"
+                          >
                             <Trash2 className="w-4 h-4 text-white" />
                           </button>
                         </div>
+                        {index === selectedCoverIndex && (
+                          <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-accent-orange text-[10px] text-white font-medium">
+                            封面
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center justify-center mt-2 text-gray-500">
                         <GripVertical className="w-4 h-4" />
-                        <span className="text-xs">拖拽排序</span>
+                        <span className="text-xs">上下按钮排序</span>
                       </div>
                     </div>
                   ))}
@@ -165,33 +259,46 @@ const Editing = () => {
 
                 <div className="mt-4 p-4 rounded-xl bg-dark-800/50 border border-white/5">
                   <p className="text-sm text-gray-400 mb-3">时间轴预览</p>
-                  <div className="flex gap-1 h-16">
-                    {activeProduct.images.map((img, index) => (
-                      <div
-                        key={index}
-                        className="flex-1 rounded-lg overflow-hidden relative group"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <img
-                          src={img}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-dark-950/80 text-xs text-white">
-                          {index * 3}s
-                        </div>
-                        {index < activeProduct.images.length - 1 && (
-                          <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-dark-950/60 flex items-center justify-center">
-                            <span className="text-xs text-primary-400">→</span>
+                  {imageList.length > 0 ? (
+                    <>
+                      <div className="flex gap-1 h-16">
+                        {imageList.map((img, index) => (
+                          <div
+                            key={index}
+                            className="flex-1 rounded-lg overflow-hidden relative group"
+                            style={{ animationDelay: `${index * 0.1}s` }}
+                          >
+                            <img
+                              src={img}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-dark-950/80 text-xs text-white">
+                              {index * 3}s
+                            </div>
+                            {index < imageList.length - 1 && (
+                              <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-dark-950/60 flex items-center justify-center">
+                                <span className="text-xs text-primary-400">→</span>
+                              </div>
+                            )}
+                            {index === selectedCoverIndex && (
+                              <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-accent-orange text-[9px] text-white">
+                                封面
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>0s</span>
-                    <span>{activeProduct.images.length * 3}s</span>
-                  </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-2">
+                        <span>0s</span>
+                        <span>{imageList.length * 3}s</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-16 flex items-center justify-center text-gray-500 text-sm">
+                      暂无图片，请先在素材导入添加商品图片
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -232,21 +339,21 @@ const Editing = () => {
               {bgmList.map((bgm) => (
                 <button
                   key={bgm.id}
-                  onClick={() => setSelectedBgm(bgm.id)}
+                  onClick={() => setSelectedBgmId(bgm.id)}
                   className={`w-full p-4 rounded-xl border flex items-center gap-4 transition-all ${
-                    selectedBgm === bgm.id
+                    selectedBgmId === bgm.id
                       ? "border-primary-500 bg-primary-500/10"
                       : "border-white/10 bg-dark-800/50 hover:border-primary-500/30"
                   }`}
                 >
                   <div
                     className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      selectedBgm === bgm.id
+                      selectedBgmId === bgm.id
                         ? "bg-gradient-primary"
                         : "bg-dark-700"
                     }`}
                   >
-                    <Music2 className={`w-5 h-5 ${selectedBgm === bgm.id ? "text-white" : "text-gray-400"}`} />
+                    <Music2 className={`w-5 h-5 ${selectedBgmId === bgm.id ? "text-white" : "text-gray-400"}`} />
                   </div>
                   <div className="flex-1 text-left">
                     <p className="text-white font-medium">{bgm.label}</p>
@@ -255,7 +362,7 @@ const Editing = () => {
                   <span className="text-sm text-gray-500">{bgm.duration}</span>
                   <button
                     className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      selectedBgm === bgm.id
+                      selectedBgmId === bgm.id
                         ? "bg-primary-500 text-white"
                         : "bg-dark-700 text-gray-400"
                     }`}
@@ -310,13 +417,17 @@ const Editing = () => {
                 </button>
               </div>
 
-              <div className="aspect-[9/16] rounded-xl overflow-hidden border-2 border-primary-500/30 bg-dark-800">
-                {activeProduct.images[0] && (
+              <div className="aspect-[9/16] rounded-xl overflow-hidden border-2 border-primary-500/30 bg-dark-800 relative">
+                {coverImage ? (
                   <img
-                    src={activeProduct.images[0]}
+                    src={coverImage}
                     alt="封面预览"
                     className="w-full h-full object-cover"
                   />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    暂无封面图片
+                  </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-dark-950/80 via-transparent to-transparent p-4 flex flex-col justify-end">
                   <div className="space-y-2">
@@ -338,37 +449,61 @@ const Editing = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
-                {activeProduct.images.map((img, i) => (
-                  <button
-                    key={i}
-                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                      i === 0 ? "border-primary-500" : "border-white/10 hover:border-primary-500/50"
-                    }`}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-                <button className="aspect-square rounded-lg border-2 border-dashed border-white/20 hover:border-primary-500/50 flex flex-col items-center justify-center text-gray-500 hover:text-primary-400 transition-all">
-                  <Plus className="w-4 h-4 mb-0.5" />
-                  <span className="text-[10px]">上传</span>
-                </button>
-              </div>
+              {imageList.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {imageList.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedCoverIndex(i)}
+                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-all relative ${
+                        i === selectedCoverIndex
+                          ? "border-accent-orange ring-2 ring-accent-orange/30"
+                          : "border-white/10 hover:border-primary-500/50"
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {i === selectedCoverIndex && (
+                        <div className="absolute inset-0 bg-accent-orange/20 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-accent-orange" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="p-4 rounded-xl bg-dark-800/50 border border-white/5">
-                <p className="text-xs text-gray-500 mb-2">模板信息</p>
-                {selectedTemplate && (
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg"
-                      style={{ background: `linear-gradient(135deg, ${selectedTemplate.primaryColor}, ${selectedTemplate.secondaryColor})` }}
-                    />
-                    <div>
-                      <p className="text-white font-medium">{selectedTemplate.name}</p>
-                      <p className="text-xs text-gray-500">{selectedTemplate.description}</p>
+                <p className="text-xs text-gray-500 mb-2">当前配置</p>
+                <div className="space-y-2">
+                  {selectedTemplate && (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${selectedTemplate.primaryColor}, ${selectedTemplate.secondaryColor})` }}
+                      />
+                      <div>
+                        <p className="text-xs text-gray-400">模板</p>
+                        <p className="text-sm text-white">{selectedTemplate.name}</p>
+                      </div>
                     </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">转场特效</span>
+                    <span className="text-sm text-white">{selectedTransitionLabel}</span>
                   </div>
-                )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">背景音乐</span>
+                    <span className="text-sm text-white">{selectedBgm.label}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">图片数量</span>
+                    <span className="text-sm text-white">{imageList.length}张</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">配音</span>
+                    <span className="text-sm text-white">{voiceConfig.gender === "female" ? "女声" : "男声"} · {voiceConfig.tone}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
