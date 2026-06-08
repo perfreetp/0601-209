@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Scissors,
   Image as ImageIcon,
@@ -17,8 +17,10 @@ import {
   RefreshCw,
   ArrowUp,
   ArrowDown,
+  Package,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import type { Product } from "@/types";
 
 const transitions = [
   { id: "fade", label: "淡入淡出", preview: "渐变过渡" },
@@ -40,34 +42,54 @@ const bgmList = [
 
 const Editing = () => {
   const { products, selectedTemplate, generateVideo, currentScript, voiceConfig } = useAppStore();
-  const activeProduct = products[0];
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [imageList, setImageList] = useState<string[]>([]);
+  const [selectedCoverImg, setSelectedCoverImg] = useState<string | null>(null);
   const [selectedTransition, setSelectedTransition] = useState("fade");
   const [selectedBgmId, setSelectedBgmId] = useState("pop");
   const [bgmVolume, setBgmVolume] = useState(50);
   const [autoCover, setAutoCover] = useState(true);
-  const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
   const [expandedImages, setExpandedImages] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateSuccess, setGenerateSuccess] = useState(false);
+  const prevIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (activeProduct?.images) {
-      setImageList([...activeProduct.images]);
+    if (products.length > 0 && selectedProductId === null) {
+      const latest = products[products.length - 1];
+      setSelectedProductId(latest.id);
     }
+  }, [products, selectedProductId]);
+
+  const activeProduct: Product | undefined = products.find(
+    (p) => p.id === selectedProductId
+  );
+
+  useEffect(() => {
+    if (!activeProduct) return;
+    if (prevIdRef.current === activeProduct.id) return;
+    prevIdRef.current = activeProduct.id;
+
+    const imgs = activeProduct.images || [];
+    setImageList([...imgs]);
+    setSelectedCoverImg(imgs.length > 0 ? imgs[0] : null);
   }, [activeProduct?.id]);
 
   useEffect(() => {
-    if (selectedCoverIndex >= imageList.length && imageList.length > 0) {
-      setSelectedCoverIndex(0);
+    if (selectedCoverImg && !imageList.includes(selectedCoverImg)) {
+      setSelectedCoverImg(imageList.length > 0 ? imageList[0] : null);
     }
-  }, [imageList.length]);
-
-  if (!activeProduct) return null;
+    if (!selectedCoverImg && imageList.length > 0) {
+      setSelectedCoverImg(imageList[0]);
+    }
+  }, [imageList]);
 
   const selectedBgm = bgmList.find((b) => b.id === selectedBgmId) || bgmList[0];
   const selectedTransitionLabel = transitions.find((t) => t.id === selectedTransition)?.label || "淡入淡出";
-  const coverImage = imageList[selectedCoverIndex] || imageList[0];
+  const hasImages = imageList.length > 0;
+  const canGenerate = hasImages && !!activeProduct && !!selectedTemplate && !!currentScript;
+
+  const getImageCoverIndex = (img: string) => imageList.indexOf(img);
 
   const moveImage = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index === 0) return;
@@ -75,22 +97,20 @@ const Editing = () => {
     const newList = [...imageList];
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newList[index], newList[swapIndex]] = [newList[swapIndex], newList[index]];
-    if (selectedCoverIndex === index) {
-      setSelectedCoverIndex(swapIndex);
-    } else if (selectedCoverIndex === swapIndex) {
-      setSelectedCoverIndex(index);
-    }
     setImageList(newList);
   };
 
   const removeImage = (index: number) => {
+    const target = imageList[index];
     const newList = imageList.filter((_, i) => i !== index);
     setImageList(newList);
+    if (target === selectedCoverImg) {
+      setSelectedCoverImg(newList.length > 0 ? newList[0] : null);
+    }
   };
 
   const handleGenerateVideo = () => {
-    if (!activeProduct || !selectedTemplate || !currentScript) return;
-    if (imageList.length === 0) return;
+    if (!canGenerate || !activeProduct || !selectedTemplate) return;
     setIsGenerating(true);
     setGenerateSuccess(false);
 
@@ -98,7 +118,7 @@ const Editing = () => {
       imageOrder: imageList,
       transition: selectedTransitionLabel,
       backgroundMusic: selectedBgm.label,
-      coverImage: coverImage,
+      coverImage: selectedCoverImg || undefined,
     });
 
     setTimeout(() => {
@@ -108,15 +128,54 @@ const Editing = () => {
     }, 2200);
   };
 
-  return (
-    <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
+  if (!activeProduct && products.length === 0) {
+    return (
+      <div className="space-y-6 animate-slide-up">
         <div>
           <h1 className="font-display text-3xl font-bold text-white mb-2 flex items-center gap-3">
             <Scissors className="w-7 h-7 text-primary-400" />
             自动剪辑
           </h1>
           <p className="text-gray-400">调整图片顺序、转场特效和背景音乐</p>
+        </div>
+        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          <Package className="w-16 h-16 text-gray-600 mb-4" />
+          <p className="text-gray-400 text-lg mb-2">暂无商品</p>
+          <p className="text-gray-500 text-sm">请先在「素材导入」页面添加商品</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-white mb-2 flex items-center gap-3">
+              <Scissors className="w-7 h-7 text-primary-400" />
+              自动剪辑
+            </h1>
+            <p className="text-gray-400">调整图片顺序、转场特效和背景音乐</p>
+          </div>
+          <div className="relative">
+            <select
+              value={selectedProductId || ""}
+              onChange={(e) => {
+                setSelectedProductId(e.target.value);
+                prevIdRef.current = null;
+              }}
+              className="input-field pl-10 pr-10 appearance-none cursor-pointer min-w-[220px]"
+            >
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({(p.images || []).length}张图)
+                </option>
+              ))}
+            </select>
+            <Package className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
         </div>
         <div className="flex gap-3 items-center">
           {generateSuccess && (
@@ -131,8 +190,8 @@ const Editing = () => {
           </button>
           <button
             onClick={handleGenerateVideo}
-            disabled={isGenerating || imageList.length === 0}
-            className="btn-primary flex items-center gap-2 disabled:opacity-60"
+            disabled={isGenerating || !canGenerate}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
             {isGenerating ? (
               <>
@@ -142,7 +201,7 @@ const Editing = () => {
             ) : (
               <>
                 <Play className="w-4 h-4" />
-                生成视频
+                {!hasImages ? "请先添加图片" : "生成视频"}
               </>
             )}
           </button>
@@ -172,122 +231,131 @@ const Editing = () => {
 
             {expandedImages && (
               <>
-                <div className="flex gap-3 overflow-x-auto pb-4">
-                  {imageList.map((img, index) => (
-                    <div
-                      key={index}
-                      className="group relative flex-shrink-0"
-                    >
-                      <div className="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-gradient-primary text-white text-sm font-bold flex items-center justify-center shadow-glow z-10">
-                        {index + 1}
-                      </div>
-                      <div className={`w-40 h-28 rounded-xl overflow-hidden border-2 transition-all relative ${
-                        index === selectedCoverIndex
-                          ? "border-accent-orange ring-2 ring-accent-orange/30"
-                          : "border-primary-500/30 hover:border-primary-500"
-                      }`}>
-                        <img
-                          src={img}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-dark-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              moveImage(index, "up");
-                            }}
-                            disabled={index === 0}
-                            className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
-                            title="上移"
-                          >
-                            <ArrowUp className="w-4 h-4 text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCoverIndex(index);
-                            }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              index === selectedCoverIndex
-                                ? "bg-accent-orange"
-                                : "bg-dark-800/80 hover:bg-accent-orange/80"
-                            }`}
-                            title="设为封面"
-                          >
-                            <Crop className="w-4 h-4 text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              moveImage(index, "down");
-                            }}
-                            disabled={index === imageList.length - 1}
-                            className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
-                            title="下移"
-                          >
-                            <ArrowDown className="w-4 h-4 text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(index);
-                            }}
-                            className="w-8 h-8 rounded-lg bg-accent-red/80 flex items-center justify-center hover:bg-accent-red"
-                            title="删除"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
-                        </div>
-                        {index === selectedCoverIndex && (
-                          <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-accent-orange text-[10px] text-white font-medium">
-                            封面
+                {hasImages ? (
+                  <div className="flex gap-3 overflow-x-auto pb-4">
+                    {imageList.map((img, index) => {
+                      const isCover = img === selectedCoverImg;
+                      return (
+                        <div
+                          key={index}
+                          className="group relative flex-shrink-0"
+                        >
+                          <div className="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-gradient-primary text-white text-sm font-bold flex items-center justify-center shadow-glow z-10">
+                            {index + 1}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-center mt-2 text-gray-500">
-                        <GripVertical className="w-4 h-4" />
-                        <span className="text-xs">上下按钮排序</span>
-                      </div>
-                    </div>
-                  ))}
-                  <button className="flex-shrink-0 w-40 h-28 rounded-xl border-2 border-dashed border-white/20 hover:border-primary-500/50 flex flex-col items-center justify-center text-gray-500 hover:text-primary-400 transition-all">
-                    <Plus className="w-6 h-6 mb-1" />
-                    <span className="text-xs">添加图片</span>
-                  </button>
-                </div>
-
-                <div className="mt-4 p-4 rounded-xl bg-dark-800/50 border border-white/5">
-                  <p className="text-sm text-gray-400 mb-3">时间轴预览</p>
-                  {imageList.length > 0 ? (
-                    <>
-                      <div className="flex gap-1 h-16">
-                        {imageList.map((img, index) => (
-                          <div
-                            key={index}
-                            className="flex-1 rounded-lg overflow-hidden relative group"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
+                          <div className={`w-40 h-28 rounded-xl overflow-hidden border-2 transition-all relative ${
+                            isCover
+                              ? "border-accent-orange ring-2 ring-accent-orange/30"
+                              : "border-primary-500/30 hover:border-primary-500"
+                          }`}>
                             <img
                               src={img}
                               alt=""
                               className="w-full h-full object-cover"
                             />
-                            <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-dark-950/80 text-xs text-white">
-                              {index * 3}s
+                            <div className="absolute inset-0 bg-dark-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveImage(index, "up");
+                                }}
+                                disabled={index === 0}
+                                className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
+                                title="上移"
+                              >
+                                <ArrowUp className="w-4 h-4 text-white" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCoverImg(img);
+                                }}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  isCover
+                                    ? "bg-accent-orange"
+                                    : "bg-dark-800/80 hover:bg-accent-orange/80"
+                                }`}
+                                title="设为封面"
+                              >
+                                <Crop className="w-4 h-4 text-white" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveImage(index, "down");
+                                }}
+                                disabled={index === imageList.length - 1}
+                                className="w-8 h-8 rounded-lg bg-dark-800/80 flex items-center justify-center hover:bg-dark-700 disabled:opacity-40"
+                                title="下移"
+                              >
+                                <ArrowDown className="w-4 h-4 text-white" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImage(index);
+                                }}
+                                className="w-8 h-8 rounded-lg bg-accent-red/80 flex items-center justify-center hover:bg-accent-red"
+                                title="删除"
+                              >
+                                <Trash2 className="w-4 h-4 text-white" />
+                              </button>
                             </div>
-                            {index < imageList.length - 1 && (
-                              <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-dark-950/60 flex items-center justify-center">
-                                <span className="text-xs text-primary-400">→</span>
-                              </div>
-                            )}
-                            {index === selectedCoverIndex && (
-                              <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-accent-orange text-[9px] text-white">
+                            {isCover && (
+                              <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-accent-orange text-[10px] text-white font-medium">
                                 封面
                               </div>
                             )}
                           </div>
-                        ))}
+                          <div className="flex items-center justify-center mt-2 text-gray-500">
+                            <GripVertical className="w-4 h-4" />
+                            <span className="text-xs">上下按钮排序</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border-2 border-dashed border-white/20 bg-dark-800/30 p-8 mb-4 text-center">
+                    <ImageIcon className="w-10 h-10 text-gray-600 mx-auto mb-2" />
+                    <p className="text-gray-500">当前商品无图片</p>
+                    <p className="text-gray-600 text-xs mt-1">请在「素材导入」页面为该商品添加图片</p>
+                  </div>
+                )}
+
+                <div className="mt-4 p-4 rounded-xl bg-dark-800/50 border border-white/5">
+                  <p className="text-sm text-gray-400 mb-3">时间轴预览</p>
+                  {hasImages ? (
+                    <>
+                      <div className="flex gap-1 h-16">
+                        {imageList.map((img, index) => {
+                          const isCover = img === selectedCoverImg;
+                          return (
+                            <div
+                              key={index}
+                              className="flex-1 rounded-lg overflow-hidden relative group"
+                            >
+                              <img
+                                src={img}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-dark-950/80 text-xs text-white">
+                                {index * 3}s
+                              </div>
+                              {index < imageList.length - 1 && (
+                                <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-dark-950/60 flex items-center justify-center">
+                                  <span className="text-xs text-primary-400">→</span>
+                                </div>
+                              )}
+                              {isCover && (
+                                <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-accent-orange text-[9px] text-white">
+                                  封面
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
                         <span>0s</span>
@@ -296,7 +364,7 @@ const Editing = () => {
                     </>
                   ) : (
                     <div className="h-16 flex items-center justify-center text-gray-500 text-sm">
-                      暂无图片，请先在素材导入添加商品图片
+                      暂无图片
                     </div>
                   )}
                 </div>
@@ -418,70 +486,81 @@ const Editing = () => {
               </div>
 
               <div className="aspect-[9/16] rounded-xl overflow-hidden border-2 border-primary-500/30 bg-dark-800 relative">
-                {coverImage ? (
+                {selectedCoverImg ? (
                   <img
-                    src={coverImage}
+                    src={selectedCoverImg}
                     alt="封面预览"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    暂无封面图片
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                    <Crop className="w-8 h-8 mb-2" />
+                    <p className="text-sm">暂无封面图片</p>
+                    <p className="text-xs text-gray-600 mt-1">请先在素材导入添加图片</p>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-dark-950/80 via-transparent to-transparent p-4 flex flex-col justify-end">
-                  <div className="space-y-2">
-                    <span className="badge bg-accent-orange/90 text-white border-0 w-fit">
-                      {activeProduct.discount || "热卖推荐"}
-                    </span>
-                    <p className="text-white font-display text-xl font-bold leading-tight">
-                      {activeProduct.name}
-                    </p>
-                    <p className="text-2xl font-bold text-accent-orange">
-                      ¥{activeProduct.price}
-                      {activeProduct.originalPrice && (
-                        <span className="text-sm text-gray-400 line-through ml-2 font-normal">
-                          ¥{activeProduct.originalPrice}
-                        </span>
-                      )}
-                    </p>
+                {selectedCoverImg && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-dark-950/80 via-transparent to-transparent p-4 flex flex-col justify-end">
+                    <div className="space-y-2">
+                      <span className="badge bg-accent-orange/90 text-white border-0 w-fit">
+                        {activeProduct?.discount || "热卖推荐"}
+                      </span>
+                      <p className="text-white font-display text-xl font-bold leading-tight">
+                        {activeProduct?.name}
+                      </p>
+                      <p className="text-2xl font-bold text-accent-orange">
+                        ¥{activeProduct?.price || 0}
+                        {activeProduct?.originalPrice && (
+                          <span className="text-sm text-gray-400 line-through ml-2 font-normal">
+                            ¥{activeProduct.originalPrice}
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {imageList.length > 0 && (
+              {hasImages && (
                 <div className="grid grid-cols-4 gap-2">
-                  {imageList.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedCoverIndex(i)}
-                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-all relative ${
-                        i === selectedCoverIndex
-                          ? "border-accent-orange ring-2 ring-accent-orange/30"
-                          : "border-white/10 hover:border-primary-500/50"
-                      }`}
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      {i === selectedCoverIndex && (
-                        <div className="absolute inset-0 bg-accent-orange/20 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-accent-orange" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {imageList.map((img, i) => {
+                    const isCover = img === selectedCoverImg;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedCoverImg(img)}
+                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all relative ${
+                          isCover
+                            ? "border-accent-orange ring-2 ring-accent-orange/30"
+                            : "border-white/10 hover:border-primary-500/50"
+                        }`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        {isCover && (
+                          <div className="absolute inset-0 bg-accent-orange/20 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-accent-orange" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
               <div className="p-4 rounded-xl bg-dark-800/50 border border-white/5">
                 <p className="text-xs text-gray-500 mb-2">当前配置</p>
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">商品</span>
+                    <span className="text-sm text-white truncate max-w-[160px]">{activeProduct?.name}</span>
+                  </div>
                   {selectedTemplate && (
                     <div className="flex items-center gap-3">
                       <div
                         className="w-8 h-8 rounded-lg flex-shrink-0"
                         style={{ background: `linear-gradient(135deg, ${selectedTemplate.primaryColor}, ${selectedTemplate.secondaryColor})` }}
                       />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-xs text-gray-400">模板</p>
                         <p className="text-sm text-white">{selectedTemplate.name}</p>
                       </div>
@@ -503,6 +582,12 @@ const Editing = () => {
                     <span className="text-xs text-gray-400">配音</span>
                     <span className="text-sm text-white">{voiceConfig.gender === "female" ? "女声" : "男声"} · {voiceConfig.tone}</span>
                   </div>
+                  {selectedCoverImg && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">封面</span>
+                      <span className="text-sm text-white">第{getImageCoverIndex(selectedCoverImg) + 1}张</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

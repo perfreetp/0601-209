@@ -223,14 +223,16 @@ const Preview = () => {
             </div>
 
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-dark-900">
-              {selectedProject.coverImage && (
+              {selectedProject.coverImage ? (
                 <img
                   src={selectedProject.coverImage}
                   alt=""
-                  className="w-full h-full object-cover opacity-60"
+                  className="w-full h-full object-cover opacity-40"
                 />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-900/50 via-dark-900 to-accent-purple/20" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/60 to-dark-950/20" />
 
               <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                 <span className="badge bg-accent-orange/90 text-white border-0">{displayDiscount}</span>
@@ -239,32 +241,57 @@ const Preview = () => {
                 </span>
               </div>
 
+              <div className="absolute top-16 left-6 right-6">
+                <div className="inline-block bg-primary-500/90 backdrop-blur px-3 py-1.5 rounded-lg">
+                  <p className="text-white text-sm font-medium leading-tight max-w-[260px] line-clamp-2">
+                    {selectedProject.script?.opening || "开场文案"}
+                  </p>
+                </div>
+              </div>
+
               <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110"
+                  className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all hover:scale-110"
                 >
                   {isPlaying ? (
-                    <Pause className="w-8 h-8 text-white ml-0.5" />
+                    <Pause className="w-6 h-6 text-white ml-0.5" />
                   ) : (
-                    <Play className="w-8 h-8 text-white ml-1" />
+                    <Play className="w-6 h-6 text-white ml-1" />
                   )}
                 </button>
               </div>
 
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 space-y-2">
+                {selectedProject.script?.sellingPoints?.slice(0, 3).map((point, i) => (
+                  <div
+                    key={i}
+                    className="bg-dark-950/70 backdrop-blur px-2 py-1.5 rounded-lg max-w-[150px]"
+                  >
+                    <p className="text-[11px] text-white/90 leading-snug line-clamp-2">
+                      • {point}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
               <div className="absolute bottom-6 left-6 right-6">
-                <p className="font-display text-2xl font-bold text-white mb-2 drop-shadow-lg">
+                <p className="font-display text-2xl font-bold text-white mb-1 drop-shadow-lg">
                   {displayTitle}
                 </p>
-                <p className="text-3xl font-bold text-accent-orange drop-shadow-lg">
+                <p className="text-2xl font-bold text-accent-orange drop-shadow-lg">
                   ¥{displayPrice}
                   {displayOriginalPrice && (
-                    <span className="text-base text-gray-300 line-through ml-2 font-normal">
+                    <span className="text-sm text-gray-300 line-through ml-2 font-normal">
                       ¥{displayOriginalPrice}
                     </span>
                   )}
                 </p>
-                <p className="text-sm text-white/80 mt-1">{displayCta}</p>
+                <div className="mt-2 bg-accent-green/90 backdrop-blur px-3 py-1.5 rounded-lg inline-block">
+                  <p className="text-white text-sm font-medium leading-tight max-w-[300px] line-clamp-2">
+                    {displayCta}
+                  </p>
+                </div>
               </div>
             </div>
 
