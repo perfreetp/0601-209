@@ -1,0 +1,295 @@
+import type {
+  Product,
+  Store,
+  VideoTemplate,
+  VideoScript,
+  VoiceConfig,
+  VideoProject,
+  PublishSchedule,
+  GenerationRecord,
+} from "@/types";
+
+export const mockProducts: Product[] = [
+  {
+    id: "p1",
+    name: "招牌红烧牛肉面",
+    price: 28,
+    originalPrice: 38,
+    discount: "限时7.4折",
+    description: "精选牛腱肉，慢炖4小时，汤头浓郁，面条劲道",
+    images: [
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1552611052-33e04de081de?w=400&h=400&fit=crop",
+    ],
+    category: "主食",
+  },
+  {
+    id: "p2",
+    name: "秘制小龙虾套餐",
+    price: 99,
+    originalPrice: 168,
+    discount: "买2斤送1斤",
+    description: "当季鲜活小龙虾，十三香/蒜蓉/麻辣三种口味任选",
+    images: [
+      "https://images.unsplash.com/photo-1625944525533-473f1b3d9684?w=400&h=400&fit=crop",
+    ],
+    category: "特色菜",
+  },
+  {
+    id: "p3",
+    name: "夏日冰爽果茶",
+    price: 12,
+    originalPrice: 18,
+    discount: "第二杯半价",
+    description: "新鲜水果现切现做，真材实料，清爽解渴",
+    images: [
+      "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop",
+    ],
+    category: "饮品",
+  },
+  {
+    id: "p4",
+    name: "经典烤肉拼盘",
+    price: 158,
+    originalPrice: 228,
+    discount: "午市特惠",
+    description: "五花肉+牛舌+鸡腿肉+韩式泡菜，4人份超值套餐",
+    images: [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=400&fit=crop",
+    ],
+    category: "套餐",
+  },
+];
+
+export const mockStore: Store = {
+  id: "s1",
+  name: "味道小馆·旗舰店",
+  address: "上海市浦东新区张江高科技园区博云路2号",
+  phone: "021-5888-6666",
+  businessHours: "周一至周日 10:00 - 22:00",
+  description: "匠心制作，用心经营10年的本地特色餐厅",
+};
+
+export const mockTemplates: VideoTemplate[] = [
+  {
+    id: "t1",
+    name: "新品上市",
+    style: "new",
+    primaryColor: "#8b5cf6",
+    secondaryColor: "#06b6d4",
+    fontFamily: "Space Grotesk",
+    animationSpeed: "normal",
+    description: "活力动感风格，突出新品亮点与新鲜感",
+    previewImage:
+      "https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=600&h=400&fit=crop",
+  },
+  {
+    id: "t2",
+    name: "团购促销",
+    style: "group",
+    primaryColor: "#f97316",
+    secondaryColor: "#fbbf24",
+    fontFamily: "Space Grotesk",
+    animationSpeed: "fast",
+    description: "紧迫感营销风格，强调限时优惠和价格优势",
+    previewImage:
+      "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&h=400&fit=crop",
+  },
+  {
+    id: "t3",
+    name: "节日营销",
+    style: "festival",
+    primaryColor: "#ef4444",
+    secondaryColor: "#fbbf24",
+    fontFamily: "Space Grotesk",
+    animationSpeed: "normal",
+    description: "喜庆热闹风格，适配各类节日活动",
+    previewImage:
+      "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&h=400&fit=crop",
+  },
+  {
+    id: "t4",
+    name: "清仓甩卖",
+    style: "clearance",
+    primaryColor: "#10b981",
+    secondaryColor: "#84cc16",
+    fontFamily: "Space Grotesk",
+    animationSpeed: "fast",
+    description: "直接明快风格，突出性价比和售完即止",
+    previewImage:
+      "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&h=400&fit=crop",
+  },
+];
+
+export const mockScript: VideoScript = {
+  id: "sc1",
+  opening: "朋友们注意啦！今天给大家带来一道超绝美食！",
+  sellingPoints: [
+    "精选上等食材，每日新鲜直送",
+    "独家秘制配方，口感层次丰富",
+    "开业限时特惠，错过再等一年",
+  ],
+  callToAction: "点击左下角链接立即抢购，手慢无！",
+  subtitles: [
+    { timestamp: 0, text: "朋友们注意啦！" },
+    { timestamp: 2, text: "今天给大家带来一道超绝美食！" },
+    { timestamp: 4, text: "精选上等食材" },
+    { timestamp: 6, text: "每日新鲜直送" },
+    { timestamp: 8, text: "独家秘制配方" },
+    { timestamp: 10, text: "口感层次丰富" },
+    { timestamp: 12, text: "开业限时特惠" },
+    { timestamp: 14, text: "错过再等一年" },
+    { timestamp: 16, text: "点击左下角链接立即抢购！" },
+  ],
+};
+
+export const mockVoiceConfig: VoiceConfig = {
+  id: "v1",
+  gender: "female",
+  tone: "热情活力",
+  speed: 1.1,
+  dialect: "普通话",
+};
+
+export const mockVideoProjects: VideoProject[] = [
+  {
+    id: "vp1",
+    productId: "p1",
+    templateId: "t2",
+    script: mockScript,
+    voiceConfig: mockVoiceConfig,
+    imageOrder: ["https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop"],
+    transition: "fade",
+    backgroundMusic: "欢快流行",
+    coverImage: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop",
+    status: "completed",
+    title: "招牌红烧牛肉面_团购促销",
+    createdAt: "2026-06-08T10:30:00Z",
+  },
+  {
+    id: "vp2",
+    productId: "p2",
+    templateId: "t1",
+    script: mockScript,
+    voiceConfig: mockVoiceConfig,
+    imageOrder: ["https://images.unsplash.com/photo-1625944525533-473f1b3d9684?w=400&h=400&fit=crop"],
+    transition: "slide",
+    backgroundMusic: "动感电子",
+    status: "completed",
+    title: "秘制小龙虾套餐_新品上市",
+    createdAt: "2026-06-08T11:45:00Z",
+  },
+  {
+    id: "vp3",
+    productId: "p3",
+    templateId: "t3",
+    script: mockScript,
+    voiceConfig: mockVoiceConfig,
+    imageOrder: ["https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop"],
+    transition: "zoom",
+    backgroundMusic: "清新夏日",
+    status: "pending_review",
+    title: "夏日冰爽果茶_节日营销",
+    createdAt: "2026-06-09T09:15:00Z",
+  },
+  {
+    id: "vp4",
+    productId: "p4",
+    templateId: "t4",
+    script: mockScript,
+    voiceConfig: { ...mockVoiceConfig, gender: "male" },
+    imageOrder: ["https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=400&fit=crop"],
+    transition: "fade",
+    backgroundMusic: "欢快流行",
+    status: "failed",
+    title: "经典烤肉拼盘_清仓甩卖",
+    createdAt: "2026-06-09T09:45:00Z",
+  },
+];
+
+export const mockSchedules: PublishSchedule[] = [
+  {
+    id: "sch1",
+    videoProjectId: "vp1",
+    videoTitle: "招牌红烧牛肉面_团购促销",
+    publishTime: "2026-06-10T18:00:00Z",
+    platforms: ["抖音", "视频号"],
+    status: "scheduled",
+  },
+  {
+    id: "sch2",
+    videoProjectId: "vp2",
+    videoTitle: "秘制小龙虾套餐_新品上市",
+    publishTime: "2026-06-10T20:00:00Z",
+    platforms: ["抖音", "快手", "视频号"],
+    status: "scheduled",
+  },
+  {
+    id: "sch3",
+    videoProjectId: "vp1",
+    videoTitle: "招牌红烧牛肉面_团购促销",
+    publishTime: "2026-06-09T12:00:00Z",
+    platforms: ["抖音"],
+    status: "published",
+  },
+  {
+    id: "sch4",
+    videoProjectId: "vp2",
+    videoTitle: "秘制小龙虾套餐_新品上市",
+    publishTime: "2026-06-09T15:00:00Z",
+    platforms: ["快手"],
+    status: "published",
+  },
+];
+
+export const mockRecords: GenerationRecord[] = [
+  {
+    id: "r1",
+    videoProjectId: "vp1",
+    videoTitle: "招牌红烧牛肉面_团购促销",
+    status: "success",
+    createdAt: "2026-06-08T10:35:00Z",
+    needsReview: false,
+  },
+  {
+    id: "r2",
+    videoProjectId: "vp2",
+    videoTitle: "秘制小龙虾套餐_新品上市",
+    status: "success",
+    createdAt: "2026-06-08T11:50:00Z",
+    needsReview: false,
+  },
+  {
+    id: "r3",
+    videoProjectId: "vp3",
+    videoTitle: "夏日冰爽果茶_节日营销",
+    status: "pending_review",
+    createdAt: "2026-06-09T09:20:00Z",
+    needsReview: true,
+  },
+  {
+    id: "r4",
+    videoProjectId: "vp4",
+    videoTitle: "经典烤肉拼盘_清仓甩卖",
+    status: "failed",
+    errorMessage: "图片素材加载超时，请检查网络连接后重试",
+    createdAt: "2026-06-09T09:50:00Z",
+    needsReview: false,
+  },
+  {
+    id: "r5",
+    videoProjectId: "vp1",
+    videoTitle: "招牌红烧牛肉面_团购促销",
+    status: "success",
+    createdAt: "2026-06-07T14:20:00Z",
+    needsReview: false,
+  },
+  {
+    id: "r6",
+    videoProjectId: "vp2",
+    videoTitle: "秘制小龙虾套餐_新品上市",
+    status: "success",
+    createdAt: "2026-06-07T16:10:00Z",
+    needsReview: false,
+  },
+];
